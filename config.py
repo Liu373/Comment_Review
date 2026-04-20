@@ -79,6 +79,28 @@ MAX_TFIDF_FEATURES = 300
 TOP_KEYWORDS_PER_CLUSTER = 6
 
 # =========================
+# ABBREVIATION EXPANSION
+# =========================
+# Add known abbreviations here so the tool expands them before clustering.
+# This helps TF-IDF treat "PS" and "Preferred Share" as the same concept.
+# Keys are case-insensitive. Run explore_comments.py first to discover
+# which abbreviations appear in your dataset.
+#
+# Format:  "ABBREVIATION": "full meaning"
+ABBREVIATIONS = {
+    "PS":   "Preferred Share",
+    "BRR":  "Business Risk Rating",
+    "MRA":  "Model Risk Assessment",
+    "LOC":  "Line of Credit",
+    "LOA":  "Line of Account",
+    "FPLOC": "Farm Plus Line of Credit",
+    "TD":   "Term Debt",
+    "RE":   "Real Estate",
+    "OP":   "Operating",
+    "WC":   "Working Capital",
+}
+
+# =========================
 # OUTPUT OPTIONS
 # =========================
 MAX_SAMPLE_REASONS_PER_GROUP = 5    # Sample reason texts shown in Group Summary
