@@ -87,10 +87,19 @@ def get_column(df: pd.DataFrame, key: str) -> pd.Series:
 # Text cleaning
 # ===========================================================================
 
+def expand_abbreviations(text: str) -> str:
+    """Replace known abbreviations with their full form (case-insensitive)."""
+    for abbr, full in config.ABBREVIATIONS.items():
+        # Match whole word only, case-insensitive
+        text = re.sub(rf"\b{re.escape(abbr)}\b", full, text, flags=re.IGNORECASE)
+    return text
+
+
 def clean_reason(text: object) -> str:
     if pd.isna(text):
         return ""
     s = re.sub(r"\s+", " ", str(text).strip())
+    s = expand_abbreviations(s)
     return s
 
 
