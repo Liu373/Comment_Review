@@ -90,8 +90,28 @@ def get_column(df: pd.DataFrame, key: str) -> pd.Series:
 def expand_abbreviations(text: str) -> str:
     """Replace known abbreviations with their full form (case-insensitive)."""
     for abbr, full in config.ABBREVIATIONS.items():
-        # Match whole word only, case-insensitive
         text = re.sub(rf"\b{re.escape(abbr)}\b", full, text, flags=re.IGNORECASE)
+    return text
+
+
+# Pre-sort synonym phrases longest-first so "undrawn debt" is matched before
+# just "debt". Built once at import time for efficiency.
+_SYNONYM_PATTERNS: list[tuple[re.Pattern, str]] = []
+for _canonical, _phrases in config.SYNONYMS.items():
+    for _phrase in sorted(_phrases, key=len, reverse=True):
+        _SYNONYM_PATTERNS.append(
+            (re.compile(rf"\b{re.escape(_phrase)}\b", re.IGNORECASE), _canonical)
+        )
+
+
+def normalize_synonyms(text: str) -> str:
+    """Replace all synonym phrases with their canonical key token.
+
+    e.g. "undrawn debt" and "new loan" both become "additional_debt"
+    so TF-IDF treats them as the same feature.
+    """
+    for pattern, canonical in _SYNONYM_PATTERNS:
+        text = pattern.sub(canonical, text)
     return text
 
 
@@ -100,6 +120,7 @@ def clean_reason(text: object) -> str:
         return ""
     s = re.sub(r"\s+", " ", str(text).strip())
     s = expand_abbreviations(s)
+    s = normalize_synonyms(s)
     return s
 
 
