@@ -79,6 +79,85 @@ MAX_TFIDF_FEATURES = 300
 TOP_KEYWORDS_PER_CLUSTER = 6
 
 # =========================
+# SYNONYM GROUPS
+# =========================
+# Define groups of phrases that mean the same concept.
+# ALL phrases in each list will be replaced by the canonical key before
+# clustering, so TF-IDF treats them as one identical token.
+#
+# Rules:
+#   - Use underscores in the key (e.g. additional_debt) so TF-IDF reads it
+#     as a single token rather than two separate words.
+#   - List more specific / longer phrases first within each group — the script
+#     replaces them in order, longest first, so "undrawn debt" is caught before
+#     just "debt".
+#   - Keys themselves should NOT appear in STOPWORDS.
+#   - Run explore_comments.py to discover what phrasings your adjudicators use,
+#     then add them here.
+#
+# Example effect:
+#   "stressed due to undrawn debt"  →  "stressed due to additional_debt"
+#   "new loan layered on facility"  →  "stressed due to additional_debt"
+#   TF-IDF now sees both as the same token → they cluster together.
+
+SYNONYMS = {
+    # ── Debt / leverage related ──────────────────────────────────────────────
+    "additional_debt": [
+        "undrawn debt", "undrawn facility", "undrawn line",
+        "new term debt", "new loan", "new debt", "new credit facility",
+        "additional loan", "additional debt", "additional borrowing",
+        "additional credit", "incremental debt", "layered debt",
+        "new borrowing", "new facility", "new revolver",
+        "personal debt", "outside debt", "related debt",
+    ],
+
+    # ── Equipment / capital expenditure ──────────────────────────────────────
+    "equipment_purchase": [
+        "equipment purchase", "purchase of equipment", "new equipment",
+        "capital purchase", "capital expenditure", "capex",
+        "farm equipment", "machinery purchase", "equipment financing",
+        "purchase of machinery", "asset purchase",
+    ],
+
+    # ── Cash flow / earnings ─────────────────────────────────────────────────
+    "cash_flow": [
+        "cash flow", "cashflow", "operating cash flow", "free cash flow",
+        "cash from operations", "operating earnings",
+    ],
+
+    # ── Preferred shares ─────────────────────────────────────────────────────
+    "preferred_share": [
+        "preferred share", "preference share", "preferred equity",
+        "preferred stock",
+    ],
+
+    # ── Real estate / property ───────────────────────────────────────────────
+    "real_estate": [
+        "real estate", "real property", "property value",
+        "land value", "farm land", "farmland",
+    ],
+
+    # ── Working capital / operating line ─────────────────────────────────────
+    "working_capital": [
+        "working capital", "operating line", "line of credit",
+        "operating credit", "revolving credit",
+    ],
+
+    # ── Restructuring / refinancing ──────────────────────────────────────────
+    "restructuring": [
+        "restructure", "restructuring", "refinanc", "refinancing",
+        "debt restructure", "loan restructure", "credit restructure",
+    ],
+
+    # ── COVID / macro environment ─────────────────────────────────────────────
+    "macro_environment": [
+        "covid", "covid-19", "pandemic", "macro environment",
+        "economic environment", "market conditions", "inflation pressure",
+        "interest rate", "rate hike", "rate increase",
+    ],
+}
+
+# =========================
 # ABBREVIATION EXPANSION
 # =========================
 # Add known abbreviations here so the tool expands them before clustering.
