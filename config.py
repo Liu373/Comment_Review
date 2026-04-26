@@ -79,6 +79,43 @@ MAX_TFIDF_FEATURES = 300
 TOP_KEYWORDS_PER_CLUSTER = 6
 
 # =========================
+# PRIORITY GROUPS
+# =========================
+# Define groups you KNOW you want, with the phrases that identify them.
+# Comments are checked against these FIRST — if matched, they are assigned
+# here directly and skipped by K-Means clustering.
+#
+# Rules:
+#   - Phrases are matched against CLEANED text (after abbreviation expansion
+#     and synonym normalization), so you can use canonical SYNONYMS keys too.
+#     e.g. "additional_debt" will catch "undrawn debt", "new loan", etc.
+#   - Matching is case-insensitive, whole-word.
+#   - First matching group wins — order matters if a comment could fit two groups.
+#   - Leave PRIORITY_GROUPS = {} to skip this step and use pure K-Means only.
+#
+# Comments that match NO priority group are automatically clustered by K-Means.
+
+PRIORITY_GROUPS = {
+    "Additional Debt / New Facility": [
+        "additional_debt",          # catches all SYNONYMS variants automatically
+        "undrawn", "new debt", "new loan",
+        "additional debt", "additional facility", "additional borrowing",
+        "new credit", "new revolver", "outside debt",
+    ],
+    "Reallocation / Current Portion LTD": [
+        "realloc", "reallocate", "reallocation",
+        "current portion", "cpltd",
+        "reclassif", "reclassification",
+        "long term debt", "long-term debt",
+    ],
+    # Add more groups below as you discover patterns.
+    # Example:
+    # "Equipment Purchase / CapEx": [
+    #     "equipment_purchase", "capex", "new equipment", "machinery",
+    # ],
+}
+
+# =========================
 # SYNONYM GROUPS
 # =========================
 # Define groups of phrases that mean the same concept.
