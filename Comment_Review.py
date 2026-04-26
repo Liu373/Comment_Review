@@ -312,42 +312,66 @@ def _cluster_label(centroid: np.ndarray, feature_names: List[str]) -> str:
     return ", ".join(top_terms) if top_terms else "miscellaneous"
 
 
+def _match_priority_group(text: str) -> Optional[str]:
+    """Return the first matching priority group name, or None if no match."""
+    for group_name, phrases in config.PRIORITY_GROUPS.items():
+        for phrase in phrases:
+            if re.search(rf"\b{re.escape(phrase)}\b", text, flags=re.IGNORECASE):
+                return group_name
+    return None
+
+
 def cluster_reasons(texts: List[str]) -> List[str]:
     """
-    Given a list of reason strings, return a cluster label for each.
-    Labels are built from the most characteristic TF-IDF terms per cluster.
+    Hybrid classification:
+      1. Check each comment against PRIORITY_GROUPS (user-defined, guaranteed).
+      2. Remaining unmatched comments → K-Means clustering (auto-discovered).
     """
     if not texts:
         return []
 
-    n_docs = len(texts)
-    n_clusters = min(config.N_CLUSTERS, n_docs)
+    # Step 1 — priority group matching
+    result: List[Optional[str]] = [_match_priority_group(t) for t in texts]
 
-    print(f"\nVectorising {n_docs} reason texts...")
-    X, feature_names = _vectorize(texts)
+    priority_counts = Counter(r for r in result if r is not None)
+    if priority_counts:
+        print("\nPriority group assignments:")
+        for grp, cnt in priority_counts.items():
+            print(f"  [{cnt:>3}]  {grp}")
 
-    if config.AUTO_SELECT_K and n_docs >= config.MIN_K * 2:
-        print("Auto-selecting K (silhouette)...")
-        n_clusters = _choose_k(X)
+    # Step 2 — cluster whatever is left
+    unmatched_idx = [i for i, r in enumerate(result) if r is None]
+
+    if unmatched_idx:
+        unmatched_texts = [texts[i] for i in unmatched_idx]
+        n_clusters = min(config.N_CLUSTERS, len(unmatched_texts))
+
+        print(f"\nVectorising {len(unmatched_texts)} unmatched texts for clustering...")
+        X, feature_names = _vectorize(unmatched_texts)
+
+        if config.AUTO_SELECT_K and len(unmatched_texts) >= config.MIN_K * 2:
+            print("Auto-selecting K (silhouette)...")
+            n_clusters = _choose_k(X)
+
+        print(f"Clustering into {n_clusters} groups...")
+        labels, centers = _cluster(X, n_clusters)
+
+        cluster_label_map = {
+            i: f"Auto Group {i + 1}: {_cluster_label(centers[i], feature_names)}"
+            for i in range(n_clusters)
+        }
+
+        print("\nAuto-cluster labels discovered:")
+        for i, lbl in cluster_label_map.items():
+            cnt = int((labels == i).sum())
+            print(f"  [{cnt:>3}]  {lbl}")
+
+        for idx, label in zip(unmatched_idx, [cluster_label_map[int(l)] for l in labels]):
+            result[idx] = label
     else:
-        n_clusters = min(n_clusters, n_docs)
+        print("\nAll comments matched a priority group — K-Means skipped.")
 
-    print(f"Clustering into {n_clusters} groups...")
-    labels, centers = _cluster(X, n_clusters)
-
-    # Build a readable label for each cluster number
-    cluster_label_map = {
-        i: f"Group {i + 1}: {_cluster_label(centers[i], feature_names)}"
-        for i in range(n_clusters)
-    }
-
-    # Print a quick cluster overview to console for sanity-checking
-    print("\nCluster labels discovered:")
-    for i, lbl in cluster_label_map.items():
-        cnt = int((labels == i).sum())
-        print(f"  [{cnt:>3}]  {lbl}")
-
-    return [cluster_label_map[int(lbl)] for lbl in labels]
+    return result  # type: ignore[return-value]
 
 
 # ===========================================================================
